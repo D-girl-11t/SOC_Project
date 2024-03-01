@@ -19,7 +19,8 @@ abstract: |
   key design metrics, including power consumption, synthesized area,
   place-and-route area, and die area, relative to the percentage of
   gated registers, elucidates the algorithm’s impact and trade-offs.
-author:
+  
+Authors:
 - Ansh Bhatnagar (ab10741@nyu.edu)
 - Dhana Laxmi Sirigireddy (ds6992@nyu.edu)
 - Jayanth Rajaram Sastry  (js12891@nyu.edu)
