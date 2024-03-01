@@ -20,9 +20,9 @@ abstract: |
   place-and-route area, and die area, relative to the percentage of
   gated registers, elucidates the algorithm’s impact and trade-offs.
 author:
-- Ansh Bhatnagar
-- Dhana Laxmi Sirigireddy
-- Jayanth Rajaram Sastry
+- Ansh Bhatnagar (ab10741@nyu.edu)
+- Dhana Laxmi Sirigireddy (ds6992@nyu.edu)
+- Jayanth Rajaram Sastry  (js12891@nyu.edu)
 ---
 
 # Introduction
@@ -119,8 +119,9 @@ provide a simpler and more effective means for designers to achieve
 power efficiency in ASIC designs, where dynamic power poses a
 significant concern.
 
-[Lighter -](https://github.com/AUCOHL/Lighter)
-[OpenROAD -](https://github.com/The-OpenROAD-Project)
+[Lighter](https://github.com/AUCOHL/Lighter)
+
+[OpenROAD](https://github.com/The-OpenROAD-Project)
 # Design Constraints
 
 In our project, we are focused on automating clock gating in digital
