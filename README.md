@@ -275,3 +275,6 @@ including specified reductions in power consumption and enhancements in
 synthesized and place-and-route area, all while ensuring chip
 performance remains uncompromised.
 
+g++ -o readfile integrated_clockgating.cpp
+./readfile 1_synth.v  
+
