@@ -3,7 +3,7 @@
 #include <string>
 #include<fstream>
 using namespace std;
-class parse   // This Parse object will parse throgh the netlist and collect all the dflip flops , multiplexers and and gates in lists.
+class integrated_clock_gating   // This Parse object will parse throgh the netlist and collect all the dflip flops , multiplexers and and gates in lists.
 {
     public:
     vector<string>  dff;
@@ -11,7 +11,7 @@ class parse   // This Parse object will parse throgh the netlist and collect all
     vector<string>  andGate;
     vector<int> dff_indices;
     vector<int> mux_indices;
-    parse(const std::string lines[], int size)
+   void  parse(const std::string lines[], int size)
     {
         int i;
         i=0;
@@ -58,6 +58,7 @@ class parse   // This Parse object will parse throgh the netlist and collect all
 
         }
     }
+
     void display()
     {
         cout<<"D flip flop list"<<endl;
@@ -117,7 +118,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < numLines; ++i) {
         cout << lines[i] <<endl;
     }
-    parse p1(lines,numLines);
+    integrated_clock_gating p1;
+    p1.parse(lines,numLines);
    //After parsing
    cout<<"Parsing Completed"<<endl;
    p1.display();
