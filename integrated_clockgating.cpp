@@ -9,6 +9,8 @@ class parse   // This Parse object will parse throgh the netlist and collect all
     vector<string>  dff;
     vector<string>  mux;
     vector<string>  andGate;
+    vector<int> dff_indices;
+    vector<int> mux_indices;
     parse(const std::string lines[], int size)
     {
         int i;
@@ -21,7 +23,7 @@ class parse   // This Parse object will parse throgh the netlist and collect all
             int foundand =lines[i].find("and2");
              if(founddff != string::npos)
              {
-                
+                dff_indices.push_back(i);
                 string flip_flop=lines[i];
                 int j;
                 for (j=1;j<=4;j++)
@@ -32,7 +34,7 @@ class parse   // This Parse object will parse throgh the netlist and collect all
              }
              else if(foundmux != string::npos)
              {
-                
+                mux_indices.push_back(i);
                 string mulitplexer=lines[i];
                 int j;
                 for (j=1;j<=5;j++)
@@ -56,7 +58,7 @@ class parse   // This Parse object will parse throgh the netlist and collect all
 
         }
     }
-    void display_netlist()
+    void display()
     {
         cout<<"D flip flop list"<<endl;
         for (const string& str : dff) {
@@ -70,6 +72,15 @@ class parse   // This Parse object will parse throgh the netlist and collect all
      for (const string& str : andGate) {
         cout << str << endl;
     }
+    cout<<"D flip flop indices"<<endl;
+        for (const int& str : dff_indices) {
+        cout << str << endl;
+    }
+    cout<<"Mux indices"<<endl;
+        for (const int& str : mux_indices) {
+        cout << str << endl;
+    }
+        
     }
 };
 
@@ -109,7 +120,7 @@ int main(int argc, char* argv[]) {
     parse p1(lines,numLines);
    //After parsing
    cout<<"Parsing Completed"<<endl;
-   p1.display_netlist();
+   p1.display();
     return 0;
    
 }
