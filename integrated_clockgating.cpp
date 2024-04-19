@@ -4,6 +4,7 @@
 #include<fstream>
 #include<map>
 #include<sstream>
+#include<algorithm>
 using namespace std;
 class integrated_clock_gating   // This Parse object will parse throgh the netlist and collect all the dflip flops , multiplexers and and gates in lists.
 {
@@ -16,6 +17,7 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
     vector<int> mux_indices;
     vector<int> and_indices;
     vector<int> inv_indices;
+    vector<string> cg_wires;
    void  parse(const std::string lines[], int size)
     {
         int i;
@@ -108,15 +110,139 @@ void replace (const map<int, pair<int,int> >& myMap)
     casecg = pair.second.second;
     if (casecg)
     {
-        string dff_clock = muxcg[]
-    }
-    else
-    {
+    size_t start_pos = muxcg[2].find_first_of('(');
+    size_t end_pos = muxcg[2].find_first_of(')', start_pos);
+    string dff_in = muxcg[2].substr(start_pos + 1, end_pos - start_pos - 1);
+    start_pos = muxcg[4].find_first_of('(');
+    end_pos = muxcg[4].find_first_of(')', start_pos);
+    string dff_clk = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
+    string and_out = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
+    string new_dff = dffcg[0] + "\n" + ".CLK(" + dff_clk + ")," + "\n" + ".D(" + dff_in + ")," +"\n" + dffcg[3] + "\n" +  dffcg[4];
+    start_pos = dffcg[1].find_first_of('(');
+    end_pos =dffcg[1].find_first_of(')', start_pos);
+    string and_a =  dffcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+    start_pos = muxcg[3].find_first_of('(');
+    end_pos =muxcg[3].find_first_of(')', start_pos);
+    string and_b =  muxcg[3].substr(start_pos + 1, end_pos - start_pos - 1);
+     size_t length = andGate.size();
 
+    // Convert the length to a string
+    stringstream ss;
+    ss << length;
+    string lengthStr = ss.str();
+
+
+    string new_and = "sky_130_fd_sc_hd_and21 "+lengthStr+"("+"\n"+".A(" + and_a + ")," + "\n" + ".B(" + and_b + ")," + "\n" + ".X(" + and_out +")"+"\n" + ");";
+    andGate.push_back(new_and);
+    dff[pair.first]=new_dff;
+    mux.erase(mux.begin()+pair.second.first);
+    
+    
     }
+    // else
+    // {
+        
+    // }
     }
 }
+ void modify_netlist(const map<int, pair<int,int> >& myMap,const std::string lines[], int size)
+  {
+    vector<int> mux_cfg_indices;
+    vector<int> dff_cfg_indices;
+    for (const auto& pair : myMap) {
+        // Extract key and pair values
+        int key = pair.first;
+        int firstValue = pair.second.first;
 
+        // Add key to keysList
+       dff_cfg_indices.push_back(key);
+
+        // Add first value to firstValuesList
+        mux_cfg_indices.push_back(firstValue);
+    }
+    string new_lines;
+    int i ;
+    i=0;
+    int j=0;
+    while(i<size-1)
+    {
+        int foundand =lines[i].find("and2");
+        int foundinverter = lines[i].find("inv");
+        if(foundand != string::npos)
+        {
+            i=i+5;
+            continue;
+        }
+         if(foundinverter != string::npos)
+        {
+            i=i+4;
+            continue;
+        }
+        int foundmodule =lines[i].find("module");
+        if(foundmodule != string::npos)
+        {
+        for (auto k = cg_wires.begin(); k != cg_wires.end(); ++k) {
+        new_lines= new_lines + *k + "\n";
+    }
+    i++;
+    continue;
+        }
+        
+        auto it = find(mux_indices.begin(), mux_indices.end(), i);
+        if (it !=mux_indices.end())
+        {
+            auto index_mux = find(mux_indices.begin(), mux_indices.end(), i);
+            int mux_index = distance(mux_indices.begin(), index_mux);
+            auto cgmux = find( mux_cfg_indices.begin(),  mux_cfg_indices.end(), mux_index);
+            if(cgmux != mux_cfg_indices.end())
+            {
+                i=i+6;
+                continue;
+            }
+             
+        }
+        auto itdf = find(dff_indices.begin(), dff_indices.end(), i);
+        if (itdf !=dff_indices.end())
+        {
+            auto index_dff = find(dff_indices.begin(), dff_indices.end(), i);
+            int dff_index = distance(dff_indices.begin(), index_dff);
+            auto cgdff = find(dff_cfg_indices.begin(), dff_cfg_indices.end(), dff_index);
+            if(cgdff !=dff_cfg_indices.end())
+            {
+               i=i+5;
+               continue;
+            }
+        }
+        new_lines=new_lines + lines[i] + "\n";
+        i++;
+        j++;
+    }
+    
+     for (auto k = andGate.begin(); k != andGate.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
+            
+        new_lines=new_lines +line + "\n";
+    }}
+     for (auto k = dff.begin(); k != dff.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
+        new_lines=new_lines +line + "\n";
+    }}
+     for (auto k = inverter.begin(); k != inverter.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
+        new_lines=new_lines +line + "\n";
+    }}
+    new_lines=new_lines+"endmodule"+'\n';
+    cout<<"modified netlist"<<endl;
+    cout<<new_lines;
+   
+
+ }
     void display()
     {
         cout<<"D flip flop list"<<endl;
@@ -180,7 +306,13 @@ int main(int argc, char* argv[]) {
     p1.parse(lines,numLines);
    //After parsing
    cout<<"Parsing Completed"<<endl;
-   p1.display();
-    return 0;
-   
+     map<int, pair<int, int> > myMap;
+
+    // Add an element to the map
+    myMap[0] = make_pair(0, 1);
+//    p1.display();
+   p1.replace(myMap);
+//    p1.display();
+   p1.modify_netlist(myMap,lines,numLines);
+    return 0;  
 }
