@@ -5,6 +5,7 @@
 #include<map>
 #include<sstream>
 #include<algorithm>
+#include <cctype> 
 using namespace std;
 class integrated_clock_gating   // This Parse object will parse throgh the netlist and collect all the dflip flops , multiplexers and and gates in lists.
 {
@@ -92,6 +93,8 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
 //     }
 
 //     }
+
+
 void replace (const map<int, pair<int,int> >& myMap)
 {
      for (const auto& pair : myMap) {
@@ -101,14 +104,18 @@ void replace (const map<int, pair<int,int> >& myMap)
         string line;
         istringstream issdff(dff[pair.first]);
         while (getline(issdff, line, '\n')) {
+        size_t firstNonSpace = line.find_first_not_of(" \t\n\r");
+        line.erase(0, firstNonSpace);
         dffcg.push_back(line);
     }
     istringstream issmux(mux[pair.second.first]);
         while (getline(issmux, line, '\n')) {
+        size_t firstNonSpace = line.find_first_not_of(" \t\n\r");
+        line.erase(0, firstNonSpace);
         muxcg.push_back(line);
     }
     casecg = pair.second.second;
-    if (casecg)
+    if (casecg==1)
     {
     size_t start_pos = muxcg[2].find_first_of('(');
     size_t end_pos = muxcg[2].find_first_of(')', start_pos);
@@ -132,17 +139,55 @@ void replace (const map<int, pair<int,int> >& myMap)
     string lengthStr = ss.str();
 
 
-    string new_and = "sky_130_fd_sc_hd_and21 "+lengthStr+"("+"\n"+".A(" + and_a + ")," + "\n" + ".B(" + and_b + ")," + "\n" + ".X(" + and_out +")"+"\n" + ");";
+    string new_and = "sky_130_fd_sc_hd_and21 "+lengthStr+" ("+"\n"+".A(" + and_a + ")," + "\n" + ".B(" + and_b + ")," + "\n" + ".X(" + and_out +")"+"\n" + ");";
     andGate.push_back(new_and);
     dff[pair.first]=new_dff;
-    mux.erase(mux.begin()+pair.second.first);
+     mux.erase(mux.begin()+pair.second.first);
     
     
     }
-    // else
-    // {
-        
-    // }
+    else
+    {
+    size_t start_pos = muxcg[1].find_first_of('(');
+    size_t end_pos = muxcg[1].find_first_of(')', start_pos);
+    string dff_in = muxcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+    start_pos = muxcg[4].find_first_of('(');
+    end_pos = muxcg[4].find_first_of(')', start_pos);
+    string dff_clk = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
+    string and_out = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
+    string new_dff = dffcg[0] + "\n" + ".CLK(" + dff_clk + ")," + "\n" + ".D(" + dff_in + ")," +"\n" + dffcg[3] + "\n" +  dffcg[4];
+    start_pos = dffcg[1].find_first_of('(');
+    end_pos =dffcg[1].find_first_of(')', start_pos);
+    string and_a =  dffcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+    start_pos = muxcg[3].find_first_of('(');
+    end_pos =muxcg[3].find_first_of(')', start_pos);
+    string inv_a = muxcg[3].substr(start_pos + 1, end_pos - start_pos - 1);
+    size_t length = inverter.size();
+
+ 
+    stringstream ss;
+    ss << length;
+    string lengthStr = ss.str();
+    size_t lengthcg = cg_wires.size();
+
+  
+    stringstream sscg;
+    sscg << lengthcg;
+    string lengthStrcg = sscg.str();
+    cg_wires.push_back("cg"+lengthStrcg);
+    string new_inverter = "sky130_fd_sc_hd__inv_1 " + lengthStr + " (" + "\n" + ".A(" + inv_a + ")," + "\n" + ".Y(cg" + lengthStrcg + ")," + "\n" + ");";
+    
+    size_t lengthand = andGate.size();
+    stringstream ssand;
+    ssand << lengthand;
+    string lengthStrand = ssand.str();
+     string new_and = "sky_130_fd_sc_hd_and21 "+lengthStrand+" ("+"\n"+".A(" + and_a + ")," + "\n" + ".B(cg" + lengthStrcg + ")," + "\n" + ".X(" + and_out +")"+"\n" + ");";
+    andGate.push_back(new_and);
+    inverter.push_back(new_inverter);
+    dff[pair.first]=new_dff;
+    mux.erase(mux.begin()+pair.second.first);
+
+    }
     }
 }
  void modify_netlist(const map<int, pair<int,int> >& myMap,const std::string lines[], int size)
@@ -168,6 +213,8 @@ void replace (const map<int, pair<int,int> >& myMap)
     {
         int foundand =lines[i].find("and2");
         int foundinverter = lines[i].find("inv");
+        int founddff = lines[i].find("DFF");
+        int foundmux = lines[i].find("mux");
         if(foundand != string::npos)
         {
             i=i+5;
@@ -178,51 +225,72 @@ void replace (const map<int, pair<int,int> >& myMap)
             i=i+4;
             continue;
         }
+        if(founddff != string::npos)
+        {
+            i=i+5;
+            continue;
+        }
+        if(foundmux != string::npos)
+        {
+            i=i+6;
+            continue;
+        }
         int foundmodule =lines[i].find("module");
         if(foundmodule != string::npos)
-        {
+        {new_lines = new_lines + lines[i] + "\n";
         for (auto k = cg_wires.begin(); k != cg_wires.end(); ++k) {
-        new_lines= new_lines + *k + "\n";
+        new_lines= new_lines + "wire " + *k + ";" + "\n" ;
     }
     i++;
     continue;
         }
         
-        auto it = find(mux_indices.begin(), mux_indices.end(), i);
-        if (it !=mux_indices.end())
-        {
-            auto index_mux = find(mux_indices.begin(), mux_indices.end(), i);
-            int mux_index = distance(mux_indices.begin(), index_mux);
-            auto cgmux = find( mux_cfg_indices.begin(),  mux_cfg_indices.end(), mux_index);
-            if(cgmux != mux_cfg_indices.end())
-            {
-                i=i+6;
-                continue;
-            }
+        // auto it = find(mux_indices.begin(), mux_indices.end(), i);
+        // if (it !=mux_indices.end())
+        // {
+        //     auto index_mux = find(mux_indices.begin(), mux_indices.end(), i);
+        //     int mux_index = distance(mux_indices.begin(), index_mux);
+        //     auto cgmux = find( mux_cfg_indices.begin(),  mux_cfg_indices.end(), mux_index);
+        //     if(cgmux != mux_cfg_indices.end())
+        //     {
+        //         i=i+6;
+        //         continue;
+        //     }
              
-        }
-        auto itdf = find(dff_indices.begin(), dff_indices.end(), i);
-        if (itdf !=dff_indices.end())
-        {
-            auto index_dff = find(dff_indices.begin(), dff_indices.end(), i);
-            int dff_index = distance(dff_indices.begin(), index_dff);
-            auto cgdff = find(dff_cfg_indices.begin(), dff_cfg_indices.end(), dff_index);
-            if(cgdff !=dff_cfg_indices.end())
-            {
-               i=i+5;
-               continue;
-            }
-        }
+        // }
+        // auto itdf = find(dff_indices.begin(), dff_indices.end(), i);
+        // if (itdf !=dff_indices.end())
+        // {
+        //     auto index_dff = find(dff_indices.begin(), dff_indices.end(), i);
+        //     int dff_index = distance(dff_indices.begin(), index_dff);
+        //     auto cgdff = find(dff_cfg_indices.begin(), dff_cfg_indices.end(), dff_index);
+        //     if(cgdff !=dff_cfg_indices.end())
+        //     {
+        //        i=i+5;
+        //        continue;
+        //     }
+        // }
         new_lines=new_lines + lines[i] + "\n";
         i++;
         j++;
     }
-    
+     for (auto k = inverter.begin(); k != inverter.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
+        new_lines=new_lines +line + "\n";
+    }}
      for (auto k = andGate.begin(); k != andGate.end(); ++k) {
         string line;
         istringstream issdff(*k);
         while (getline(issdff, line, '\n')) {
             
+        new_lines=new_lines +line + "\n";
+    }}
+      for (auto k = mux.begin(); k != mux.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
         new_lines=new_lines +line + "\n";
     }}
      for (auto k = dff.begin(); k != dff.end(); ++k) {
@@ -231,12 +299,8 @@ void replace (const map<int, pair<int,int> >& myMap)
         while (getline(issdff, line, '\n')) {
         new_lines=new_lines +line + "\n";
     }}
-     for (auto k = inverter.begin(); k != inverter.end(); ++k) {
-        string line;
-        istringstream issdff(*k);
-        while (getline(issdff, line, '\n')) {
-        new_lines=new_lines +line + "\n";
-    }}
+    
+  
     new_lines=new_lines+"endmodule"+'\n';
     cout<<"modified netlist"<<endl;
     cout<<new_lines;
