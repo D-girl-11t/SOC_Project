@@ -2,23 +2,39 @@
 
 module flip(clk, en, d, q);
   wire _0_;
+  wire _1_;
   input clk;
   wire clk;
   input d;
   wire d;
+  input d1;
+  wire d1;
   input en;
   wire en;
   output q;
   wire q;
+  output q1;
+  wire q1;
   sky130_fd_sc_hd__mux2_4 _1_ (
     .A0(q),
     .A1(d),
     .S(en),
     .X(_0_)
   );
+  sky130_fd_sc_hd__mux2_4 _2_ (
+    .A0(q1),
+    .A1(d1),
+    .S(en),
+    .X(_1_)
+  );
   sky130_fd_sc_hd__dfxtp_1 \q$_DFFE_PP_  (
     .CLK(clk),
     .D(_0_),
     .Q(q)
+  );
+  sky130_fd_sc_hd__dfxtp_2 \q$_DFFE_PP_  (
+    .CLK(clk),
+    .D(_1_),
+    .Q(q1)
   );
 endmodule
