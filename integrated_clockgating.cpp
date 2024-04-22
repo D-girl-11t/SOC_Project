@@ -91,19 +91,29 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
             // Regular expressions to extract indices
             std::regex dff_regex(R"(\.D\((.*?)\))");
             std::regex dffout_regex(R"(\.Q\((.*?)\))");
-
+            
             for (int i = 0; i < dff.size(); i++) {
+            
+
+            // // convert to single line
+            // std::string single_line_dff;
+            // for (char c : dff[i]) {
+            //     if (c != '\n') {
+            //         single_line_dff += c;
+            //     }
+            // }
+            // std::cout<<single_line_dff;
             std::smatch match;
-            // std::cout<<"dff";
-            if (regex_search(dff[i], match, dff_regex)) {
+            if (std::regex_search(dff[i], match, dffout_regex)) {
                 std::string dff_output = match[1];
                 if (std::regex_search(dff[i], match, dff_regex)) {
                     std::string dff_input = match[1];
                 // if (!output.empty()) {
                     // output.pop_back();
                     // output.pop_back();// Remove the last character
-                    // std::cout << "Lineoutput " << i << ": " << dff_output <<std::endl;
-                    // std::cout << "Lineinput " << i << ": " << dff_input <<std::endl;
+                    
+                    std::cout << "Lineoutput " << i << ": " << dff_output <<std::endl;
+                    std::cout << "Lineinput " << i << ": " << dff_input <<std::endl;
                     // } 
                     // Iterate through MUXes
                     for (int j = 0; j < mux.size(); j++) {
@@ -152,7 +162,7 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                     
                     
                         bool found_q = false;
-                        for (size_t k = 0; k < C_all.size(); ++k) {
+                        for (size_t k = 0; k < 2; ++k) {
                             if (C_all[k] == dff_output && C_all.back()== dff_input) {
                                 casenumber = k;
                                 found_q = true;
@@ -161,15 +171,15 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                         }
                         
                         if (found_q) {
-                            // std::cout << "Found that unique mux" << std::endl;
+                            std::cout << "Found that unique mux" << std::endl;
                             //update the dff, mux and case
                             validation_output.insert({i, {j, casenumber}});
-                        } //else {std::cout << "Did not find 'q' in C_all" << std::endl;}
+                        } else {std::cout << "Did not find 'q' in C_all" << std::endl;}
                         
-                    // else {std::cout << "No selectors found ? Recheck" << std::endl;}
+                    
                 }
                 }
-            } //else {std::cout << "Line " << i << " dff does not contain '.Q('" << std::endl;}
+            } else {std::cout << "Line " << i << " dff does not contain '.Q('" << std::endl;}
         }
         ratio = (validation_output.size() / static_cast<double>(dff.size()) )*100;
         std::cout<<"Ratio of DFF clock gated = "<< ratio << "%" << endl;
@@ -458,16 +468,16 @@ int main(int argc, char* argv[]) {
         std::cout << "Key: " << pair.first << ", Value: (" << pair.second.first << ", " << pair.second.second << ")" << std::endl;
     }
     cout<<"validation completed"<<endl;
-//    p1.display();
-    p1.replace();
+// //    p1.display();
+//     p1.replace();
 
-//    p1.display();
-    string s1;
-    s1=p1.modify_netlist(lines,numLines);
+// //    p1.display();
+//     string s1;
+//     s1=p1.modify_netlist(lines,numLines);
   
-    std::ofstream outFile(argv[1]); // Change the output filename if needed
-    if (outFile.is_open()) {
-        outFile << s1; // Write the string to the file
-        outFile.close();}
-    return 0;  
+//     std::ofstream outFile("cg.v"); // Change the output filename if needed
+//     if (outFile.is_open()) {
+//         outFile << s1; // Write the string to the file
+//         outFile.close();}
+//     return 0;  
 }
