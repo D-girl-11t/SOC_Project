@@ -21,9 +21,19 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
     vector<int> and_indices;
     vector<int> inv_indices;
     vector<string> cg_wires;
-    map<int, std::pair<int, int> > validation_output;
+    struct myvalues {
+    std::pair<int, int> og;
+    int ii;
+    int cc;
+    };
+    std::map<int, myvalues> validation_output;
+    // std::map<int, std::pair<int, int>, int, int> validation_output;
     int casenumber = -1;
+    int clockedge = -1;
+    int inv_index = -1;
     double ratio; 
+    //some necessary info
+    std::vector<std::vector<std::vector<string>>> necessary_info;    //for every dff
 
    void  parse(const std::string lines[], int size)
     {
@@ -91,30 +101,69 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
             // Regular expressions to extract indices
             std::regex dff_regex(R"(\.D\((.*?)\))");
             std::regex dffout_regex(R"(\.Q\((.*?)\))");
+            std::regex dffclock_regex(R"(\.CLK\((.*?)\))");
             
             for (int i = 0; i < dff.size(); i++) {
-            
+                std::vector<std::vector<string>> info;
 
-            // // convert to single line
-            // std::string single_line_dff;
-            // for (char c : dff[i]) {
-            //     if (c != '\n') {
-            //         single_line_dff += c;
-            //     }
-            // }
-            // std::cout<<single_line_dff;
-            std::smatch match;
-            if (std::regex_search(dff[i], match, dffout_regex)) {
-                std::string dff_output = match[1];
-                if (std::regex_search(dff[i], match, dff_regex)) {
-                    std::string dff_input = match[1];
-                // if (!output.empty()) {
+
+                // // convert to single line
+                // std::string single_line_dff;
+                // for (char c : dff[i]) {
+                //     if (c != '\n') {
+                //         single_line_dff += c;
+                //     }
+                // }
+                // std::cout<<single_line_dff;
+                std::smatch match_in;
+                std::smatch match_out;
+                std::smatch match_clk;
+                vector<string> dff_elements;
+                if (std::regex_search(dff[i], match_in, dffout_regex)) {
+                std::string dff_output = match_in[1];
+                if (std::regex_search(dff[i], match_out, dff_regex)) {
+                    std::string dff_input = match_out[1];
+                    if(std::regex_search(dff[i], match_clk, dffclock_regex)) {
+                        std::string dff_clock = match_clk[1];
+                        // std::cout << "Lineclk " << i << ": " << dff_clock <<std::endl;
+                    
+                    // if (!output.empty()) {
                     // output.pop_back();
                     // output.pop_back();// Remove the last character
                     
-                    std::cout << "Lineoutput " << i << ": " << dff_output <<std::endl;
-                    std::cout << "Lineinput " << i << ": " << dff_input <<std::endl;
+                    // std::cout << "Lineoutput " << i << ": " << dff_output <<std::endl;
+                    // std::cout << "Lineinput " << i << ": " << dff_input <<std::endl;
                     // } 
+                    dff_elements.push_back(dff_input);
+                    dff_elements.push_back(dff_output);
+                    dff_elements.push_back(dff_clock);
+                    //lets find if clock is negedge or not
+                    info.push_back(dff_elements);
+                    // iterate through all inverters and check if output of inverter is input to dff_clock
+                    
+                    for(int g=0; g<inverter.size();g++){
+                        //lets get inverter output
+
+                        std::regex regex_C(R"(\((.*?)\))");
+                        std::smatch match_i;
+                        std::vector<std::string> inv_elements;
+                        auto B_begin = std::sregex_iterator(inverter[g].begin(), inverter[g].end(), regex_C);
+                        auto B_end = std::sregex_iterator();
+                        for (std::sregex_iterator it = B_begin; it != B_end; ++it) {
+                            std::smatch match_i = *it;
+                            if (match_i.size() > 1) {
+                                std::string C = match_i[1];
+                                inv_elements.push_back(C);
+                            }
+                        }
+                        if(inv_elements.back() == dff_clock){
+                            clockedge = 1; //negclockedge
+                            inv_index = g;
+                        }else {clockedge=0;}
+                        info.push_back(inv_elements);
+                    }
+
+                    }
                     // Iterate through MUXes
                     for (int j = 0; j < mux.size(); j++) {
 
@@ -131,15 +180,15 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                                             
                         
                         
-                    // B = Remove everything before the first dot (.)
+                        // B = Remove everything before the first dot (.)
                         std::regex regex_B(R"(\.(.*))");
                         std::smatch match_B;
                         if(std::regex_search(single_line_text, match_B, regex_B)){
                             std::string B = match_B[1];
                             // std::cout << "B = " << B << std::endl;
                 
-                    // C = Extract text within parenthesis
-                    //dont touch this code, its working
+                        // C = Extract text within parenthesis
+                        //dont touch this code, its working
                             std::regex regex_C(R"(\((.*?)\))");
                             std::smatch match_C;
                             auto B_begin = std::sregex_iterator(B.begin(), B.end(), regex_C);
@@ -151,6 +200,7 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                                     C_all.push_back(C);
                                 }
                             }
+                            info.push_back(C_all);
                             // if (!C_all.empty()) {
                             //     // std::cout << "elements of mux ";
                             //     for (const auto& c : C_all) {
@@ -173,17 +223,19 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                         if (found_q) {
                             std::cout << "Found that unique mux" << std::endl;
                             //update the dff, mux and case
-                            validation_output.insert({i, {j, casenumber}});
+                            validation_output[i]={{j,casenumber}, inv_index, clockedge};
                         } else {std::cout << "Did not find 'q' in C_all" << std::endl;}
                         
                     
-                }
+                    }
                 }
             } else {std::cout << "Line " << i << " dff does not contain '.Q('" << std::endl;}
+        necessary_info.push_back(info);
         }
         ratio = (validation_output.size() / static_cast<double>(dff.size()) )*100;
         std::cout<<"Ratio of DFF clock gated = "<< ratio << "%" << endl;
-        }
+        // std::cout<<necessary_info[0][0].back();
+    }
 
 
 
@@ -200,13 +252,13 @@ void replace ()
         line.erase(0, firstNonSpace);
         dffcg.push_back(line);
     }
-    istringstream issmux(mux[pair.second.first]);
+    istringstream issmux(mux[pair.second.og.first]);
         while (getline(issmux, line, '\n')) {
         size_t firstNonSpace = line.find_first_not_of(" \t\n\r");
         line.erase(0, firstNonSpace);
         muxcg.push_back(line);
     }
-    casecg = pair.second.second;
+    casecg = pair.second.og.second;
     cout<<casecg<<endl;
     if (casecg==0)
     {
@@ -235,7 +287,7 @@ void replace ()
     string new_and = "sky_130_fd_sc_hd_and21 "+lengthStr+" ("+"\n"+".A(" + and_a + ")," + "\n" + ".B(" + and_b + ")," + "\n" + ".X(" + and_out +")"+"\n" + ");";
     andGate.push_back(new_and);
     dff[pair.first]=new_dff;
-     mux.erase(mux.begin()+pair.second.first);
+     mux.erase(mux.begin()+pair.second.og.first);
     
     
     }
@@ -278,7 +330,7 @@ void replace ()
     andGate.push_back(new_and);
     inverter.push_back(new_inverter);
     dff[pair.first]=new_dff;
-    mux.erase(mux.begin()+pair.second.first);
+    mux.erase(mux.begin()+pair.second.og.first);
 
     }
     }
@@ -290,7 +342,7 @@ string modify_netlist(const std::string lines[], int size)
     for (const auto& pair : validation_output) {
         // Extract key and pair values
         int key = pair.first;
-        int firstValue = pair.second.first;
+        int firstValue = pair.second.og.first;
 
         // Add key to keysList
        dff_cfg_indices.push_back(key);
@@ -425,7 +477,7 @@ string modify_netlist(const std::string lines[], int size)
     }
         
     }
-};
+    };
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -465,20 +517,21 @@ int main(int argc, char* argv[]) {
    //After parsing
     cout<<"Parsing Completed"<<endl;
     p1.validation();
+    std::cout << "Key: " << "dff" << ", Value: ((" << "mux" << ", " << "casenumber" << "), " << "inverter index" <<"," << "pos/neg edge" << ")" << std::endl;
     for (const auto& pair : p1.validation_output) {
-        std::cout << "Key: " << pair.first << ", Value: (" << pair.second.first << ", " << pair.second.second << ")" << std::endl;
+        std::cout << "Key: " << pair.first << ", Value: ((" << pair.second.og.first << ", " << pair.second.og.second << "), " << pair.second.ii <<"," << pair.second.cc << ")" << std::endl;
     }
     cout<<"validation completed"<<endl;
-//    p1.display();
-    p1.replace();
+// //    p1.display();
+//     p1.replace();
 
-//    p1.display();
-    string s1;
-    s1=p1.modify_netlist(lines,numLines);
+// //    p1.display();
+//     string s1;
+//     s1=p1.modify_netlist(lines,numLines);
   
-    std::ofstream outFile("cg.v"); // Change the output filename if needed
-    if (outFile.is_open()) {
-        outFile << s1; // Write the string to the file
-        outFile.close();}
+//     std::ofstream outFile("cg.v"); // Change the output filename if needed
+//     if (outFile.is_open()) {
+//         outFile << s1; // Write the string to the file
+//         outFile.close();}
     return 0;  
 }
