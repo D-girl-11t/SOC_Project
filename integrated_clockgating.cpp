@@ -207,7 +207,8 @@ void replace ()
         muxcg.push_back(line);
     }
     casecg = pair.second.second;
-    if (casecg==1)
+    cout<<casecg<<endl;
+    if (casecg==0)
     {
     size_t start_pos = muxcg[2].find_first_of('(');
     size_t end_pos = muxcg[2].find_first_of(')', start_pos);
@@ -468,16 +469,16 @@ int main(int argc, char* argv[]) {
         std::cout << "Key: " << pair.first << ", Value: (" << pair.second.first << ", " << pair.second.second << ")" << std::endl;
     }
     cout<<"validation completed"<<endl;
-// //    p1.display();
-//     p1.replace();
+//    p1.display();
+    p1.replace();
 
-// //    p1.display();
-//     string s1;
-//     s1=p1.modify_netlist(lines,numLines);
+//    p1.display();
+    string s1;
+    s1=p1.modify_netlist(lines,numLines);
   
-//     std::ofstream outFile("cg.v"); // Change the output filename if needed
-//     if (outFile.is_open()) {
-//         outFile << s1; // Write the string to the file
-//         outFile.close();}
-//     return 0;  
+    std::ofstream outFile("cg.v"); // Change the output filename if needed
+    if (outFile.is_open()) {
+        outFile << s1; // Write the string to the file
+        outFile.close();}
+    return 0;  
 }
