@@ -185,7 +185,7 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
             }
         } //else {std::cout << "Line " << i << " dff does not contain '.Q('" << std::endl;}
     }
-       ratio = (static_cast<double>(dff.size()) / validation_output.size())*100;
+       ratio = (validation_output.size() / static_cast<double>(dff.size()) )*100;
        std::cout<<"Ratio of DFF clock gated = "<< ratio << "%" << endl;
     }
 
