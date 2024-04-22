@@ -21,6 +21,8 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
     vector<int> inv_indices;
     map<int, std::pair<int, int>> validation_output;
     int casenumber = -1;
+    double ratio; 
+
 
    void parse(const std::string lines[], int size)
     {
@@ -183,7 +185,8 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
             }
         } //else {std::cout << "Line " << i << " dff does not contain '.Q('" << std::endl;}
     }
-
+       ratio = (static_cast<double>(dff.size()) / validation_output.size())*100;
+       std::cout<<"Ratio of DFF clock gated = "<< ratio << "%" << endl;
     }
 
 
