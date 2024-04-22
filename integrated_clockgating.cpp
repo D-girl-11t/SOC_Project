@@ -19,6 +19,8 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
     vector<int> and_indices;
     vector<int> inv_indices;
     vector<string> cg_wires;
+    map<int, std::pair<int, int> > validation_output;
+
    void  parse(const std::string lines[], int size)
     {
         int i;
@@ -95,9 +97,9 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
 //     }
 
 
-void replace (const map<int, pair<int,int> >& myMap)
+void replace ()
 {
-     for (const auto& pair : myMap) {
+     for (const auto& pair : validation_output) {
         // cout << "Key: " << pair.first << ", Value: (" << pair.second.first << ", " << pair.second.second << ")" << endl;
         vector<string>muxcg,dffcg;
         int casecg;
@@ -190,11 +192,11 @@ void replace (const map<int, pair<int,int> >& myMap)
     }
     }
 }
- void modify_netlist(const map<int, pair<int,int> >& myMap,const std::string lines[], int size)
+string modify_netlist(const std::string lines[], int size)
   {
     vector<int> mux_cfg_indices;
     vector<int> dff_cfg_indices;
-    for (const auto& pair : myMap) {
+    for (const auto& pair : validation_output) {
         // Extract key and pair values
         int key = pair.first;
         int firstValue = pair.second.first;
@@ -304,6 +306,7 @@ void replace (const map<int, pair<int,int> >& myMap)
     new_lines=new_lines+"endmodule"+'\n';
     cout<<"modified netlist"<<endl;
     cout<<new_lines;
+    return new_lines;
    
 
  }
@@ -359,7 +362,7 @@ int main(int argc, char* argv[]) {
     while (getline(file, line)) {
         lines[index++] = line;
     }
-    file.close();
+    
     //intial netlist 
     cout<<"Intiial Netlist"<<endl;
     cout << "Lines read from file " << argv[1] << ":" << endl;
@@ -375,8 +378,15 @@ int main(int argc, char* argv[]) {
     // Add an element to the map
     myMap[0] = make_pair(0, 1);
 //    p1.display();
-   p1.replace(myMap);
+   p1.replace();
+
 //    p1.display();
-   p1.modify_netlist(myMap,lines,numLines);
+string s1;
+   s1=p1.modify_netlist(lines,numLines);
+  
+   std::ofstream outFile(argv[1]); // Change the output filename if needed
+    if (outFile.is_open()) {
+        outFile << s1; // Write the string to the file
+        outFile.close();}
     return 0;  
 }
