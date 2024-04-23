@@ -8,7 +8,14 @@
 #include <cctype> 
 #include <regex>
 using namespace std;\
-
+string lengthvec(vector<string>  a)
+{
+    size_t length = a.size();
+            stringstream sscg;
+            sscg << length;
+            string lengthStrcg = sscg.str();
+            return lengthStrcg;
+}
 class integrated_clock_gating   // This Parse object will parse throgh the netlist and collect all the dflip flops , multiplexers and and gates in lists.
 {
     public:
@@ -16,10 +23,16 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
     vector<string>  mux;
     vector<string>  andGate;
     vector<string> inverter;
+    vector<string> norGate;
+    vector<string> neg_latches;
+    vector<string> pos_latches;
     vector<int> dff_indices;
     vector<int> mux_indices;
     vector<int> and_indices;
     vector<int> inv_indices;
+    vector<int> nor_indices;
+    vector<int> neglatch_indices;
+    vector<int> poslatch_indices;
     vector<string> cg_wires;
     struct myvalues {
     std::pair<int, int> og;
@@ -46,6 +59,10 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
             int foundmux =lines[i].find("mux2");
             int foundand =lines[i].find("and2");
             int foundinverter = lines[i].find("inv");
+            int foundneglatch = lines[i].find("dlxtn");
+            int foundposlatch = lines[i].find("dlxtp");
+            int foundnor = lines[i].find("nor");
+
              if(founddff != string::npos)
              {
                 dff_indices.push_back(i);
@@ -87,6 +104,39 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                 inv=inv +"\n" + lines[i+j];
                 
                 inverter.push_back(inv);
+                i=i+j;
+             }
+             else if (foundnor != string::npos)
+             {
+                nor_indices.push_back(i);
+                string nor=lines[i];
+                int j;
+                for (j=1;j<=4;j++)
+                nor=nor +"\n" + lines[i+j];
+                
+                norGate.push_back(nor);
+                i=i+j;
+             }
+              else if (foundneglatch != string::npos)
+             {
+                neglatch_indices.push_back(i);
+                string negl=lines[i];
+                int j;
+                for (j=1;j<=4;j++)
+                negl=negl +"\n" + lines[i+j];
+                
+                neg_latches.push_back(negl);
+                i=i+j;
+             }
+              else if (foundposlatch != string::npos)
+             {
+                poslatch_indices.push_back(i);
+                string posl=lines[i];
+                int j;
+                for (j=1;j<=4;j++)
+                posl=posl +"\n" + lines[i+j];
+                
+                pos_latches.push_back(posl);
                 i=i+j;
              }
              
@@ -243,10 +293,11 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
 
 void replace ()
 {
+    
      for (const auto& pair : validation_output) {
         // cout << "Key: " << pair.first << ", Value: (" << pair.second.first << ", " << pair.second.second << ")" << endl;
-        vector<string>muxcg,dffcg;
-        int casecg;
+        vector<string>muxcg,dffcg,invcg;
+        int casecg,trigcg;
         string line;
         istringstream issdff(dff[pair.first]);
         while (getline(issdff, line, '\n')) {
@@ -260,80 +311,162 @@ void replace ()
         line.erase(0, firstNonSpace);
         muxcg.push_back(line);
     }
+    //   istringstream issinv(inverter[pair.second.ii]);
+    //     while (getline(issinv, line, '\n')) {
+    //     size_t firstNonSpace = line.find_first_not_of(" \t\n\r");
+    //     line.erase(0, firstNonSpace);
+    //     cout<<line<<endl;
+    //     invcg.push_back(line);
+    // }
     casecg = pair.second.og.second;
-    cout<<casecg<<endl;
-    if (casecg==0)
-    {
-    size_t start_pos = muxcg[2].find_first_of('(');
-    size_t end_pos = muxcg[2].find_first_of(')', start_pos);
-    string dff_in = muxcg[2].substr(start_pos + 1, end_pos - start_pos - 1);
-    start_pos = muxcg[4].find_first_of('(');
-    end_pos = muxcg[4].find_first_of(')', start_pos);
-    string dff_clk = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
-    string and_out = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
-    string new_dff = dffcg[0] + "\n" + ".CLK(" + dff_clk + ")," + "\n" + ".D(" + dff_in + ")," +"\n" + dffcg[3] + "\n" +  dffcg[4];
-    start_pos = dffcg[1].find_first_of('(');
-    end_pos =dffcg[1].find_first_of(')', start_pos);
-    string and_a =  dffcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
-    start_pos = muxcg[3].find_first_of('(');
-    end_pos =muxcg[3].find_first_of(')', start_pos);
-    string and_b =  muxcg[3].substr(start_pos + 1, end_pos - start_pos - 1);
-     size_t length = andGate.size();
-
-    // Convert the length to a string
-    stringstream ss;
-    ss << length;
-    string lengthStr = ss.str();
-
-
-    string new_and = "sky_130_fd_sc_hd_and21 "+lengthStr+" ("+"\n"+".A(" + and_a + ")," + "\n" + ".B(" + and_b + ")," + "\n" + ".X(" + and_out +")"+"\n" + ");";
-    andGate.push_back(new_and);
-    dff[pair.first]=new_dff;
-     mux.erase(mux.begin()+pair.second.og.first);
-    
-    
-    }
-    else
-    {
+    trigcg=pair.second.cc;
+    cout<<"case"<<casecg<<endl;
+    cout<<"pos/neg"<<trigcg<<endl;
     size_t start_pos = muxcg[1].find_first_of('(');
     size_t end_pos = muxcg[1].find_first_of(')', start_pos);
-    string dff_in = muxcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+    string muxip1= muxcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+    start_pos = muxcg[2].find_first_of('(');
+    end_pos = muxcg[2].find_first_of(')', start_pos);
+    string muxip2= muxcg[2].substr(start_pos + 1, end_pos - start_pos - 1);
+    start_pos = muxcg[3].find_first_of('(');
+    end_pos = muxcg[3].find_first_of(')', start_pos);
+    string muxenable= muxcg[3].substr(start_pos + 1, end_pos - start_pos - 1);
     start_pos = muxcg[4].find_first_of('(');
     end_pos = muxcg[4].find_first_of(')', start_pos);
-    string dff_clk = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
-    string and_out = muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
-    string new_dff = dffcg[0] + "\n" + ".CLK(" + dff_clk + ")," + "\n" + ".D(" + dff_in + ")," +"\n" + dffcg[3] + "\n" +  dffcg[4];
+    string muxoutput= muxcg[4].substr(start_pos + 1, end_pos - start_pos - 1);
     start_pos = dffcg[1].find_first_of('(');
-    end_pos =dffcg[1].find_first_of(')', start_pos);
-    string and_a =  dffcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
-    start_pos = muxcg[3].find_first_of('(');
-    end_pos =muxcg[3].find_first_of(')', start_pos);
-    string inv_a = muxcg[3].substr(start_pos + 1, end_pos - start_pos - 1);
-    size_t length = inverter.size();
-
- 
-    stringstream ss;
-    ss << length;
-    string lengthStr = ss.str();
-    size_t lengthcg = cg_wires.size();
-
-  
-    stringstream sscg;
-    sscg << lengthcg;
-    string lengthStrcg = sscg.str();
-    cg_wires.push_back("cg"+lengthStrcg);
-    string new_inverter = "sky130_fd_sc_hd__inv_1 " + lengthStr + " (" + "\n" + ".A(" + inv_a + ")," + "\n" + ".Y(cg" + lengthStrcg + ")," + "\n" + ");";
+    end_pos = dffcg[1].find_first_of(')', start_pos);
+    string dffclk= dffcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+   
     
-    size_t lengthand = andGate.size();
-    stringstream ssand;
-    ssand << lengthand;
-    string lengthStrand = ssand.str();
-     string new_and = "sky_130_fd_sc_hd_and21 "+lengthStrand+" ("+"\n"+".A(" + and_a + ")," + "\n" + ".B(cg" + lengthStrcg + ")," + "\n" + ".X(" + and_out +")"+"\n" + ");";
-    andGate.push_back(new_and);
-    inverter.push_back(new_inverter);
-    dff[pair.first]=new_dff;
-    mux.erase(mux.begin()+pair.second.og.first);
+   
+    
+    //     istringstream issinv(inverter[pair.second.ii]);
+    //     while (getline(issinv, line, '\n')) {
+    //     size_t firstNonSpace = line.find_first_not_of(" \t\n\r");
+    //     line.erase(0, firstNonSpace);
+    //     cout<<line<<endl;
+    //     invcg.push_back(line);
+    
+    // start_pos = invcg[1].find_first_of('(');
+    // end_pos = invcg[1].find_first_of(')', start_pos);
+    // invclk= invcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+    // start_pos = invcg[2].find_first_of('(');
+    // end_pos = invcg[2].find_first_of(')', start_pos);
+    // invout= invcg[2].substr(start_pos + 1, end_pos - start_pos - 1);
+    
+    
+    if (trigcg==0)
+    {
+        if(casecg==0)
+        {
+           string lengthStrcg =lengthvec(inverter);
+            string new_inv = "sky130_fd_sc_hd_inv_1 " +lengthStrcg +" (\n" + ".A(" + dffclk + "),\n" +".B(";
+            lengthStrcg = lengthvec(cg_wires);
+            cg_wires.push_back("cg"+lengthStrcg);
+            new_inv= new_inv + "cg"+lengthStrcg +"),\n" + ");\n";
+            cout<<new_inv<<endl;
+            lengthStrcg = lengthvec(neg_latches);
+            string new_neg_latch = "sky130_fd_sc_hd__dlxtn_1 \q"+lengthStrcg+"\sky130_fd_sc_hd__dlxtn_1 (\n" + ".D(cg" + lengthStrcg +")\n," + "GATEN(" + muxenable + "),\n" ;
+            lengthStrcg = lengthvec(cg_wires);
+            cg_wires.push_back("cg"+lengthStrcg);
+            new_neg_latch= new_neg_latch + ".Q(cg"+lengthStrcg +")\n" + ");\n";
+            lengthStrcg = lengthvec(andGate);
+            string new_and= "sky_130_fd_sc_hd_and21 " + lengthStrcg +")\n" + ".A(" + cg_wires.back() + "),\n" + ".B(" + dffclk + "),\n"+".X("+muxoutput +")\n" +");\n";
+            string new_dff=dffcg[0]+ "\n" + ".CLK(" + muxoutput + "),\n" + ".D(" + muxip2 + "),\n" + dffcg[3] +"\n" + dffcg[4]+"\n";
+            dff[pair.first]=new_dff;
+            andGate.push_back(new_and);
+            inverter.push_back(new_inv);
+            neg_latches.push_back(new_neg_latch);
+            mux.erase(mux.begin()+pair.second.og.first);
+        }
+        if(casecg==1)
+        {
+        string lengthStrcg = lengthvec(inverter);
+        string new_inv = "sky130_fd_sc_hd_inv_1 " + lengthStrcg + "(\n" + ".A(" + muxenable + "),\n";
+        lengthStrcg = lengthvec(cg_wires);
+        cg_wires.push_back("cg" +lengthStrcg);
+        new_inv= new_inv + ".B("+ cg_wires.back()+"),\n" + ");\n";
+        inverter.push_back(new_inv);
+        lengthStrcg = lengthvec(inverter);
+        string new_inv1 = "sky130_fd_sc_hd_inv_1 " + lengthStrcg + "(\n" + ".A(" + dffclk + "),\n";
+        lengthStrcg =lengthvec(cg_wires);
+        cg_wires.push_back("cg" +lengthStrcg);
+        new_inv1 = new_inv1 + ".B(" + cg_wires.back() + ")\n" +");\n";
+        lengthStrcg = lengthvec(neg_latches);
+        string new_neg_latch= "sky130_fd_sc_hd__dlxtn_1 \q"+lengthStrcg+"\sky130_fd_sc_hd__dlxtn_1 (\n" + ".D(" + cg_wires.back() + "),\n" + "GATEN(" + cg_wires[cg_wires.size()-2] +"),\n";
+        lengthStrcg = lengthvec(cg_wires);
+        cg_wires.push_back("cg" +lengthStrcg);
+        new_neg_latch = new_neg_latch + ".Q(" + cg_wires.back() + ")\n" + ");\n";
+        lengthStrcg = lengthvec(andGate);
+        string new_and = "sky_130_fd_sc_hd_and21 " + lengthStrcg +  "(\n" + ".A(" + cg_wires.back() + "),\n" + ".B(" + dffclk + "),\n" + ".X(" + muxoutput + ")\n" + ");\n";
+        string new_dff= dffcg[0] + "\n" + ".CLK("  + muxoutput + "),\n" + ".D(" + muxip1 + "),\n" + dffcg[3] + "\n" + dffcg[4] + "\n";
+        dff[pair.first]=new_dff;
+        andGate.push_back(new_and);
+        inverter.push_back(new_inv1);
+        neg_latches.push_back(new_neg_latch);
+        mux.erase(mux.begin()+pair.second.og.first);
+        }
+     }
+    else if (trigcg==1)
+    {
+    istringstream issinv(inverter[pair.second.ii]);
+    while (getline(issinv, line, '\n')) {
+    size_t firstNonSpace = line.find_first_not_of(" \t\n\r");
+    line.erase(0, firstNonSpace);
+    cout<<line<<endl;
+    invcg.push_back(line);}
+    string invclk,invout;
+    start_pos = invcg[1].find_first_of('(');
+    end_pos = invcg[1].find_first_of(')', start_pos);
+    invclk= invcg[1].substr(start_pos + 1, end_pos - start_pos - 1);
+    start_pos = invcg[2].find_first_of('(');
+    end_pos = invcg[2].find_first_of(')', start_pos);
+    invout= invcg[2].substr(start_pos + 1, end_pos - start_pos - 1);
+    if(casecg==0)
+    {string lengthStrcg = lengthvec(pos_latches);
+            string new_pos_latch = "sky130_fd_sc_hd__dlxtp_1 \q" + lengthStrcg + "\sky130_fd_sc_hd__dlxtp_1 (\n" + ".D(" + muxenable +"),\n" + ".GATE(" + invclk +"),\n" ;
+            
+            lengthStrcg = lengthvec(cg_wires);
+            cg_wires.push_back("cg"+lengthStrcg);
+            new_pos_latch=new_pos_latch + ".Q(" + cg_wires.back() + ")\n" + ");\n";
+            string new_inv = invcg[0] + "\n" + "A.(" + cg_wires.back() + "),\n" + invcg[2] + "\n" + invcg[3] +"\n";
+            
+            lengthStrcg = lengthvec(norGate);
+            string new_nor = "sky130_fd_sc_hd__nor2_1 " + lengthStrcg + "(\n" + ".A(" + invclk + "),\n" + ".B(" + dffclk  + "),\n" + ".Y(" + muxoutput + ")\n" + ");\n";
+            string new_dff = dffcg[0] + "\n" + ".CLK(" + muxoutput + "),\n" + ".D(" + muxip2 + "),\n" + dffcg[3] + "\n" + dffcg[4] +"\n";
+            dff[pair.first]=new_dff;
+            norGate.push_back(new_nor);
+            inverter[pair.second.ii]=(new_inv);
+            pos_latches.push_back(new_pos_latch);
+            mux.erase(mux.begin()+pair.second.og.first);
+       }
+    if(casecg==1)
+    {
+    string lengthStrcg = lengthvec(inverter);
 
+        string new_inv = invcg[0] + "(\n" + ".A(" + muxenable + "),\n" + invcg[2] + "\n" + invcg[3] +"\n";
+        inverter[pair.second.ii]=(new_inv);
+         lengthStrcg = lengthvec(pos_latches);
+        string new_pos_latch = "sky130_fd_sc_hd__dlxtp_1 \q" + lengthStrcg + "\sky130_fd_sc_hd__dlxtp_1 (\n" + ".D(" +invout + "),\n" + ".GATE(" + invclk + "),\n";
+        lengthStrcg = lengthvec(cg_wires);
+        cg_wires.push_back("cg" +lengthStrcg);
+        new_pos_latch = new_pos_latch + ".Q(" + cg_wires.back() + ")\n" + ");\n";
+        lengthStrcg = lengthvec(inverter);
+        string new_inv1= "sky130_fd_sc_hd_inv_1 " + lengthStrcg + "(\n" + ".A(" + cg_wires.back() + "),\n;"; 
+        lengthStrcg = lengthvec(cg_wires);
+        cg_wires.push_back("cg" +lengthStrcg);
+        new_inv1 = new_inv1 + ".B(" + cg_wires.back() + ")\n" + ");\n";
+        lengthStrcg = lengthvec(norGate);
+       string new_nor= "sky130_fd_sc_hd__nor2_1 " + lengthStrcg + "(\n" + ".A(" + cg_wires.back() + "),\n" + ".B(" + invclk + "),\n" + ".Y(" + muxoutput + ")\n" + ");\n";
+       string new_dff = dffcg[0] +"\n" + ".CLK(" + muxoutput + "),\n" + ".D(" + muxip1 + "),\n" + dffcg[3] + "\n" +dffcg[4]+"\n";
+       dff[pair.first]=new_dff;
+        norGate.push_back(new_nor);
+        inverter.push_back(new_inv1);
+        pos_latches.push_back(new_pos_latch);
+        mux.erase(mux.begin()+pair.second.og.first);
+ 
+    }
     }
     }
 }
@@ -362,6 +495,9 @@ string modify_netlist(const std::string lines[], int size)
         int foundinverter = lines[i].find("inv");
         int founddff = lines[i].find("DFF");
         int foundmux = lines[i].find("mux");
+        int foundneglatch = lines[i].find("dlxtn");
+        int foundposlatch = lines[i].find("dlxtp");
+        int foundnor = lines[i].find("nor");
         if(foundand != string::npos)
         {
             i=i+5;
@@ -380,6 +516,21 @@ string modify_netlist(const std::string lines[], int size)
         if(foundmux != string::npos)
         {
             i=i+6;
+            continue;
+        }
+         if(foundnor != string::npos)
+        {
+            i=i+5;
+            continue;
+        }
+         if(foundneglatch != string::npos)
+        {
+            i=i+5;
+            continue;
+        }
+        if(foundposlatch != string::npos)
+        {
+            i=i+5;
             continue;
         }
         int foundmodule =lines[i].find("module");
@@ -422,6 +573,24 @@ string modify_netlist(const std::string lines[], int size)
         j++;
     }
      for (auto k = inverter.begin(); k != inverter.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
+        new_lines=new_lines +line + "\n";
+    }}
+       for (auto k = pos_latches.begin(); k != pos_latches.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
+        new_lines=new_lines +line + "\n";
+    }}
+       for (auto k = neg_latches.begin(); k != neg_latches.end(); ++k) {
+        string line;
+        istringstream issdff(*k);
+        while (getline(issdff, line, '\n')) {
+        new_lines=new_lines +line + "\n";
+    }}
+       for (auto k = norGate.begin(); k != norGate.end(); ++k) {
         string line;
         istringstream issdff(*k);
         while (getline(issdff, line, '\n')) {
@@ -525,15 +694,20 @@ int main(int argc, char* argv[]) {
     }
     cout<<"validation completed"<<endl;
 // //    p1.display();
-//     p1.replace();
+    p1.replace();
 
-// //    p1.display();
-//     string s1;
-//     s1=p1.modify_netlist(lines,numLines);
-  
-//     std::ofstream outFile("cg.v"); // Change the output filename if needed
-//     if (outFile.is_open()) {
-//         outFile << s1; // Write the string to the file
-//         outFile.close();}
+//    p1.display();
+    string s1;
+    s1=p1.modify_netlist(lines,numLines);
+    cout<<argv[1];
+    string s2;
+    s2=argv[1];
+    s2.pop_back();
+    s2.pop_back();
+    s2=s2+"_cg.v";
+    std::ofstream outFile(s2); // Change the output filename if needed
+    if (outFile.is_open()) {
+        outFile << s1; // Write the string to the file
+        outFile.close();}
     return 0;  
 }
