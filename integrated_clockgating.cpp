@@ -28,9 +28,9 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
     };
     std::map<int, myvalues> validation_output;
     // std::map<int, std::pair<int, int>, int, int> validation_output;
-    int casenumber = -1;
-    int clockedge = -1;
-    int inv_index = -1;
+    int casenumber = -500;
+    int clockedge = -500;
+    int inv_index = -500;
     double ratio; 
     //some necessary info
     std::vector<std::vector<std::vector<string>>> necessary_info;    //for every dff
@@ -140,7 +140,7 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                     //lets find if clock is negedge or not
                     info.push_back(dff_elements);
                     // iterate through all inverters and check if output of inverter is input to dff_clock
-                    
+                    if(inverter.size()!=0){
                     for(int g=0; g<inverter.size();g++){
                         //lets get inverter output
 
@@ -156,12 +156,14 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
                                 inv_elements.push_back(C);
                             }
                         }
+                        std::cout<<"invertersassemble";
                         if(inv_elements.back() == dff_clock){
                             clockedge = 1; //negclockedge
                             inv_index = g;
-                        }else {clockedge=0;}
+                        }
                         info.push_back(inv_elements);
                     }
+                    }else {std::cout<<"positive"; clockedge=0;}
 
                     }
                     // Iterate through MUXes
