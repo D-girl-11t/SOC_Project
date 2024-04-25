@@ -55,7 +55,7 @@ class integrated_clock_gating   // This Parse object will parse throgh the netli
         while(i<size)
         {
            
-            int founddff =lines[i].find("DFFE");
+            int founddff =lines[i].find("dfxtp");
             int foundmux =lines[i].find("mux2");
             int foundand =lines[i].find("and2");
             int foundinverter = lines[i].find("inv");
@@ -493,7 +493,7 @@ string modify_netlist(const std::string lines[], int size)
     {
         int foundand =lines[i].find("and2");
         int foundinverter = lines[i].find("inv");
-        int founddff = lines[i].find("DFF");
+        int founddff = lines[i].find("dfxtp");
         int foundmux = lines[i].find("mux");
         int foundneglatch = lines[i].find("dlxtn");
         int foundposlatch = lines[i].find("dlxtp");
@@ -693,7 +693,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Key: " << pair.first << ", Value: ((" << pair.second.og.first << ", " << pair.second.og.second << "), " << pair.second.ii <<"," << pair.second.cc << ")" << std::endl;
     }
     cout<<"validation completed"<<endl;
-// //    p1.display();
+   p1.display();
     p1.replace();
 
 //    p1.display();
