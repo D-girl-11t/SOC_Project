@@ -367,7 +367,7 @@ void replace ()
             new_inv= new_inv + "cg"+lengthStrcg +"),\n" + ");\n";
             cout<<new_inv<<endl;
             lengthStrcg = lengthvec(neg_latches);
-            string new_neg_latch = "sky130_fd_sc_hd__dlxtn_1 \q"+lengthStrcg+"\sky130_fd_sc_hd__dlxtn_1 (\n" + ".D(cg" + lengthStrcg +")\n," + "GATEN(" + muxenable + "),\n" ;
+            string new_neg_latch = "sky130_fd_sc_hd__dlxtn_1 \q"+lengthStrcg+"\sky130_fd_sc_hd__dlxtn_1 (\n" + ".D(" +  muxenable +")\n," + "GATEN(" + cg_wires.back() + "),\n" ;
             lengthStrcg = lengthvec(cg_wires);
             cg_wires.push_back("cg"+lengthStrcg);
             new_neg_latch= new_neg_latch + ".Q(cg"+lengthStrcg +")\n" + ");\n";
@@ -394,7 +394,7 @@ void replace ()
         cg_wires.push_back("cg" +lengthStrcg);
         new_inv1 = new_inv1 + ".B(" + cg_wires.back() + ")\n" +");\n";
         lengthStrcg = lengthvec(neg_latches);
-        string new_neg_latch= "sky130_fd_sc_hd__dlxtn_1 \q"+lengthStrcg+"\sky130_fd_sc_hd__dlxtn_1 (\n" + ".D(" + cg_wires.back() + "),\n" + "GATEN(" + cg_wires[cg_wires.size()-2] +"),\n";
+        string new_neg_latch= "sky130_fd_sc_hd__dlxtn_1 \q"+lengthStrcg+"\sky130_fd_sc_hd__dlxtn_1 (\n" + ".D(" +cg_wires[cg_wires.size()-2] + "),\n" + "GATEN(" + cg_wires.back() +"),\n";
         lengthStrcg = lengthvec(cg_wires);
         cg_wires.push_back("cg" +lengthStrcg);
         new_neg_latch = new_neg_latch + ".Q(" + cg_wires.back() + ")\n" + ");\n";
@@ -430,7 +430,7 @@ void replace ()
             lengthStrcg = lengthvec(cg_wires);
             cg_wires.push_back("cg"+lengthStrcg);
             new_pos_latch=new_pos_latch + ".Q(" + cg_wires.back() + ")\n" + ");\n";
-            string new_inv = invcg[0] + "\n" + "A.(" + cg_wires.back() + "),\n" + invcg[2] + "\n" + invcg[3] +"\n";
+            string new_inv = invcg[0] + "\n" + ".A(" + cg_wires.back() + "),\n" + invcg[2] + "\n" + invcg[3] +"\n";
             
             lengthStrcg = lengthvec(norGate);
             string new_nor = "sky130_fd_sc_hd__nor2_1 " + lengthStrcg + "(\n" + ".A(" + invclk + "),\n" + ".B(" + dffclk  + "),\n" + ".Y(" + muxoutput + ")\n" + ");\n";
